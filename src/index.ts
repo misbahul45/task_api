@@ -20,7 +20,6 @@ app.use('*', async (c, next) => {
   log('Request completed', { requestId, method, path, status, responseTime });
 });
 
-
 app.get('/', (c) => {
   return c.json({
     message: 'Hello, World!',
@@ -28,11 +27,10 @@ app.get('/', (c) => {
   })
 })
 
-const api = new Hono()
 
+const api = new Hono()
 api.route('/auth', auth)
 app.route('/api', api)
-
 
 
 app.onError((err, c) => {
