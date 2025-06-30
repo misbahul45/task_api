@@ -1,32 +1,24 @@
 import { Context } from 'hono'
-import { loginSchema } from '@/validation/auth.val.js'
-import { loginService } from '@/services/auth.service.js'
-import { successResponse, errorResponse } from '@/utils/response.js'
+import { loginSchema, registerSchema } from '@/validation/auth.val.js'
+import { loginService, registerService } from '@/services/auth.service.js'
+import { successResponse } from '@/utils/response.js'
+import { log } from '@/utils/logging.js'
+
 
 export const login = async (c: Context): Promise<Response> => {
-  const body = await c.req.json()
-  const parsed = loginSchema.safeParse(body)
-
-  if (!parsed.success) {
-    return c.json(errorResponse('Validation failed', parsed.error.flatten()), 400)
-  }
-
-  const { email, password } = parsed.data
-
-  try {
-    const token = await loginService(email, password)
-    return c.json(successResponse('Login successful', { token }))
-  } catch (err: any) {
-    const isNotFound = err.message === 'User not found'
-    const isInvalidPass = err.message === 'Invalid password'
-    return c.json(errorResponse(err.message), isNotFound ? 404 : isInvalidPass ? 401 : 500)
-  }
+  const { email, password } = c.get('validatedBody')
+  const token = await loginService(email, password)
+  log('User logged in', { email })
+  return c.json(successResponse('Login successful', { token }))
 }
 
-
-export const register = (c: Context) => {
-  return c.json({ message: 'Register endpoint is not implemented yet' })
+export const register = async (c: Context): Promise<Response> => {
+  const { email, password, name } = c.get('validatedBody')
+  await registerService({ email, password, name })
+  log('User registered', { email })
+  return c.json(successResponse('Registration successful'))
 }
+
 
 export const logout = (c: Context) => {
   return c.json({ message: 'Logout endpoint is not implemented yet' })

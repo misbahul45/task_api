@@ -1,11 +1,26 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import 'dotenv/config'
-import auth from '@/routes/auth.routes.js' // pastikan ekstensi sesuai konfigurasi tsconfig/module
+import auth from '@/routes/auth.routes.js'
+import { log, customLoggerMethods, AppError } from '@/utils/logging.js' 
+import { v4 as uuidv4 } from 'uuid';
 
 const app = new Hono()
 
-// Root route — bisa dihilangkan jika tidak dibutuhkan
+app.use('*', async (c, next) => {
+  const start = Date.now();
+  const requestId = uuidv4();
+  const { method, path } = c.req;
+
+  log('Incoming request', { requestId, method, path });
+
+  await next();
+  const responseTime = Date.now() - start;
+  const status = c.res.status;
+  log('Request completed', { requestId, method, path, status, responseTime });
+});
+
+
 app.get('/', (c) => {
   return c.json({
     message: 'Hello, World!',
@@ -16,9 +31,36 @@ app.get('/', (c) => {
 const api = new Hono()
 
 api.route('/auth', auth)
-
-
 app.route('/api', api)
+
+
+
+app.onError((err, c) => {
+  const status = (err as any).status || 500
+  const message = err.message || 'Internal Server Error'
+  const details = (err as any).details || undefined
+
+  customLoggerMethods.error('Application error', {
+    error: message,
+    status,
+    stack: err.stack,
+    details
+  })
+
+  return c.json(
+    {
+      message,
+      status,
+      ...(details && { details })
+    },
+    status
+  )
+})
+
+app.notFound((c) => {
+  return c.json({ message: 'Not Found' }, 404)
+})
+
 
 serve({
   fetch: app.fetch,
