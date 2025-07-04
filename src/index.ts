@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const app = new Hono()
 
-app.use('*', async (c, next) => {
+app.use('/api/*', async (c, next) => {
   const start = Date.now();
   const requestId = uuidv4();
   const { method, path } = c.req;
@@ -20,7 +20,8 @@ app.use('*', async (c, next) => {
   log('Request completed', { requestId, method, path, status, responseTime });
 });
 
-app.get('/', (c) => {
+
+app.get('/api', (c) => {
   return c.json({
     message: 'Hello, World!',
     env: process.env.NODE_ENV || 'development'
@@ -48,7 +49,7 @@ app.onError((err, c) => {
   return c.json(
     {
       message,
-      status,
+      success: false,
       ...(details && { details })
     },
     status
@@ -56,7 +57,7 @@ app.onError((err, c) => {
 })
 
 app.notFound((c) => {
-  return c.json({ message: 'Not Found' }, 404)
+  return c.json({ message: 'route not found' }, 404)
 })
 
 

@@ -9,14 +9,49 @@ datasource db {
 
 
 model User {
-  id                   Int      @id @default(autoincrement())
+  id                   String   @id @default(uuid())
   email                String   @unique
   password             String
   name                 String
-  emailVerified        Boolean  @default(false)
-  verificationToken    String?  @unique
-  resetToken           String?  @unique
-  resetTokenExpiry     DateTime?
+  image_url            String?
+  emailVerified        DateTime?
+  sessions             UserSession[]
+  otpVerifications     OTPVerification[]
+
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }
+
+model UserSession {
+  id        String   @id @default(uuid())
+  sessionId String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@map("user_sessions")
+}
+
+model OTPVerification {
+  id         String      @id @default(uuid())
+  userId     String
+  otp        String      @unique
+  usedAt     DateTime?   
+  purpose    OTPPurpose
+  expiresAt  DateTime
+  createdAt  DateTime    @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("otp_verifications")
+}
+
+enum OTPPurpose {
+  RESETPASS
+  VERIFYEMAIL
+  LOGIN
+}
+
